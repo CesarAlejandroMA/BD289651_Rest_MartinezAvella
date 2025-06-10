@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Huecos del Espacio</title>
+  <script src="js/jquery-1.12.4.min.js"></script>
+</head>
+<body>
+  <center><h2>Huecos para Espacio <span id="espId"></span></h2></center>
+
+  <div>
+    <!-- formulario para crear huecos -->
+        <label>Inicio: <input type="datetime-local" id="inputInicio"></label><br>
+	    <label>Fin:    <input type="datetime-local" id="inputFin"></label><br>
+	    <button id="btnCrearHueco">Crear Hueco</button>
+  </div>
+
+  <hr>
+
+  <h3>Listado de Huecos</h3>
+  <ul id="listaHuecos"></ul>
+  <button onclick="history.back()">← Volver a Espacios</button>
+
+  <script>
+    // 1) Leer el parámetro espacioId de la URL
+    const params = new URLSearchParams(window.location.search);
+    const espacioId = params.get('espacioId');
+    $('#espId').text(espacioId);
+
+    // 2) Función para mostrar cada hueco
+	function loadHueco(h) {
+	  // reemplaza la T por espacio
+	  const inicio = h.startTime.replace('T', ' ');
+	  const fin    = h.endTime  .replace('T', ' ');
+	  $('#listaHuecos').append(
+	    $('<li>').text(`(${h.id}) ${inicio} → ${fin}`)
+	  );
+	}
+
+    // 3) Al cargar, pide los huecos al back-end
+    $(document).ready(() => {
+      $.ajax({
+        url: `api/espacios/${espacioId}/huecos`,
+        type: 'GET',
+        dataType: 'json',
+        success: lista => lista.forEach(loadHueco),
+        error: () => alert('No se pudieron cargar los huecos')
+      });
+    
+ // Crear nuevo hueco
+    $('#btnCrearHueco').click(() => {
+    	  const inicioVal = $('#inputInicio').val();
+    	  const finVal    = $('#inputFin').val();
+      
+      // 2) Validar que no estén vacíos
+      if (!inicioVal || !finVal) {
+        alert('Debes indicar fecha y hora de inicio y fin.');
+        return;
+      }
+ 
+      // 3) Convertir a Date para comparar
+      const inicioDate = new Date(inicioVal);
+      const finDate    = new Date(finVal);
+      if (finDate <= inicioDate) {
+        alert('La fecha/hora fin debe ser posterior a la de inicio.');
+        return;
+      }
+      
+      const nuevo = { startTime: inicioVal, endTime: finVal };
+
+      $.ajax({
+        url: `api/espacios/${espacioId}/huecos`,
+        type: 'POST',
+        contentType: 'application/json',
+        dataType: 'json',
+        data: JSON.stringify(nuevo),
+        success: h => {
+          loadHueco(h);
+          $('#inputInicio, #inputFin').val('');
+        },
+        error: xhr => {
+          alert(`Error ${xhr.status}: ${xhr.responseText}`);
+        }
+      });
+    });
+  });
+    
+  </script>
+</body>
+</html>

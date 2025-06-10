@@ -25,6 +25,14 @@
 	  // Crea el <li>
 	  const li = $('<li>').attr('id', 'esp-' + e.id)
 	                      .text(`(${e.id}) ${e.name} — ${e.description} `);
+	  
+	  //Botón Ver Huecos
+	  const btnHuecos = $('<button>')
+      .text('Huecos')
+      .click(() => {
+        // redirige a huecos.html pasando el id como query param
+        window.location.href = `huecos.html?espacioId=${e.id}`;
+      });
 
 	  // Botón Borrar
 	  const btnDel = $('<button>')
@@ -38,7 +46,7 @@
 	      });
 	    });
 
-	  // Botón Editar (ejemplo: sólo cambia el nombre a “EDITADO”)
+	  // Botón Editar
 	  const btnEdit = $('<button>')
 	    .text('Editar')
 	    .click(() => {
@@ -58,7 +66,7 @@
 	      });
 	    });
 
-	  li.append(btnDel, btnEdit);
+	  li.append(btnHuecos, btnDel, btnEdit);
 	  $('#listaEspacios').append(li);
 	}
   
