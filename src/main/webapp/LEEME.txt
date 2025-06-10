@@ -1,0 +1,13 @@
+//Cargar JSON  en Servicio REST
+StringBuilder sb = new StringBuilder();
+try {
+	BufferedReader in = new BufferedReader(new InputStreamReader(incomingData));
+	String line = null;
+	while ((line = in.readLine()) != null) {
+		sb.append(line);
+	}
+} catch (Exception e) {
+	System.out.println("Error Parsing: - ");
+}
+
+JSONObject jsonRecibido = new JSONObject(sb.toString());
