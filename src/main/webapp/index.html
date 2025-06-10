@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Gestión de Espacios</title>
+  <script src="js/jquery-1.12.4.min.js"></script>
+</head>
+<body>
+  <center><h2>Gestión de Espacios</h2></center>
+
+  <div>
+    <label>Nombre: <input type="text" id="inputNombre"></label><br>
+    <label>Descripción: <input type="text" id="inputDescripcion"></label><br>
+    <button id="btnCrear">Crear Espacio</button>
+  </div>
+
+  <hr>
+
+  <h3>Listado de Espacios</h3>
+  <ul id="listaEspacios"></ul>
+
+  <script type="text/javascript">
+  
+  function loadEspacio(e) {
+	  // Crea el <li>
+	  const li = $('<li>').attr('id', 'esp-' + e.id)
+	                      .text(`(${e.id}) ${e.name} — ${e.description} `);
+
+	  // Botón Borrar
+	  const btnDel = $('<button>')
+	    .text('Borrar')
+	    .click(() => {
+	      $.ajax({
+	        url: `api/espacios/${e.id}`,
+	        type: 'DELETE',
+	        success: () => li.remove(),
+	        error: () => alert('Error al borrar espacio')
+	      });
+	    });
+
+	  // Botón Editar (ejemplo: sólo cambia el nombre a “EDITADO”)
+	  const btnEdit = $('<button>')
+	    .text('Editar')
+	    .click(() => {
+	      const nuevo = { id: e.id,
+	                      name: prompt('Nuevo nombre', e.name) || e.name,
+	                      description: prompt('Nueva descripción', e.description) || e.description };
+	      $.ajax({
+	        url: `api/espacios/${e.id}`,
+	        type: 'PUT',
+	        contentType: 'application/json',
+	        data: JSON.stringify(nuevo),
+	        success: () => {
+	          li.text(`(${nuevo.id}) ${nuevo.name} — ${nuevo.description} `);
+	          li.append(btnDel, btnEdit);
+	        },
+	        error: () => alert('Error al editar')
+	      });
+	    });
+
+	  li.append(btnDel, btnEdit);
+	  $('#listaEspacios').append(li);
+	}
+  
+  $(document).ready(function() {
+	  // 1) Traer todos al cargar la página
+	  $.ajax({
+	    url: 'api/espacios',
+	    type: 'GET',
+	    dataType: 'json',
+	    success: function(lista) {
+	      lista.forEach(loadEspacio);
+	    },
+	    error: function() {
+	      alert('No se pudieron cargar los espacios');
+	    }
+	  });
+
+	  // 2) Crear uno nuevo
+	  $('#btnCrear').click(function() {
+	    const nuevo = {
+	      name: $('#inputNombre').val(),
+	      description: $('#inputDescripcion').val()
+	    };
+	    $.ajax({
+	      url: 'api/espacios',
+	      type: 'POST',
+	      contentType: 'application/json',
+	      dataType: 'json',
+	      data: JSON.stringify(nuevo),
+	      success: function(creado) {
+	        loadEspacio(creado);
+	        $('#inputNombre, #inputDescripcion').val('');  // limpia inputs
+	      },
+	      error: function() {
+	        alert('Error al crear espacio');
+	      }
+	    });
+	  });
+	});
+
+  
+  </script>
+</body>
+</html>
