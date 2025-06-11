@@ -3,21 +3,56 @@
 <head>
   <meta charset="utf-8">
   <title>Gestión de Espacios</title>
-  <script src="js/jquery-1.12.4.min.js"></script>
+  <link
+  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"/>
+
+<link rel="stylesheet" href="css/style.css">
+
 </head>
 <body>
-  <center><h2>Gestión de Espacios</h2></center>
 
-  <div>
-    <label>Nombre: <input type="text" id="inputNombre"></label><br>
-    <label>Descripción: <input type="text" id="inputDescripcion"></label><br>
-    <button id="btnCrear">Crear Espacio</button>
+  <script src="js/jquery-1.12.4.min.js"></script>
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Gestión de Espacios</a>
+    </div>
+  </nav>
+  
+  <div class="container">
+    <!-- Formulario -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-5">
+            <label class="form-label">Nombre</label>
+            <input type="text" id="inputNombre" class="form-control">
+          </div>
+          <div class="col-md-5">
+            <label class="form-label">Descripción</label>
+            <input type="text" id="inputDescripcion" class="form-control">
+          </div>
+          <div class="col-md-2">
+            <button id="btnCrear" class="btn btn-primary w-100">Crear Espacio</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Listado -->
+    <ul id="listaEspacios" class="list-group">
+		  <!-- Cada elemento será <li class="list-group-item d-flex justify-content-between align-items-center">…</li> -->
+		  		<!-- cada li se generará así: -->
+		  <!--
+		  <li class="list-group-item">
+		    <span>(1) A101 — Primer Salón</span>
+		    <button class="btn btn-sm btn-huecos">Huecos</button>
+		    <button class="btn btn-sm btn-outline-danger">Borrar</button>
+		    <button class="btn btn-sm btn-outline-secondary">Editar</button>
+		  </li>
+		  -->
+    </ul>
   </div>
-
-  <hr>
-
-  <h3>Listado de Espacios</h3>
-  <ul id="listaEspacios"></ul>
 
   <script type="text/javascript">
 $(document).ready(function() {
@@ -25,17 +60,17 @@ $(document).ready(function() {
   function loadEspacio(e) {
 	  
 	  // 1) Creamos el LI y un SPAN para la info
-	  const li   = $('<li>').attr('id', 'esp-' + e.id);
-	  const info = $('<span>').text(`(${e.id}) ${e.name} — ${e.description} `);
+	  const li = $(`<li id="esp-${e.id}" class="list-group-item d-flex align-items-center">`);
+	  const info = $('<span>').text(`(${e.id}) ${e.name} — ${e.description}`);
     // Botón “Huecos”
-    const btnHuecos = $('<button>')
+    const btnHuecos = $('<button>').addClass('btn btn-sm btn-huecos')
       .text('Huecos')
       .click(() => {
         window.location.href = `huecos.html?espacioId=${e.id}`;
       });
 
     // Botón “Borrar”
-    const btnDel = $('<button>')
+    const btnDel = $('<button>').addClass('btn btn-sm btn-outline-danger')
       .text('Borrar')
       .click(() => {
         if (!confirm('¿Seguro que deseas eliminar este espacio?')) return;
@@ -48,7 +83,7 @@ $(document).ready(function() {
       });
 
     // Botón “Editar”
-    const btnEdit = $('<button>')
+    const btnEdit = $('<button>').addClass('btn btn-sm btn-outline-secondary')
       .text('Editar')
       .click(() => {
         const nuevoNombre = prompt('Nuevo nombre', e.name);
@@ -185,6 +220,7 @@ $(document).ready(function() {
   });
 });
 </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

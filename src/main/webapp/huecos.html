@@ -3,23 +3,42 @@
 <head>
   <meta charset="utf-8">
   <title>Huecos del Espacio</title>
-  <script src="js/jquery-1.12.4.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="css/style.css">
+  	<script src="js/jquery-1.12.4.min.js"></script>
 </head>
 <body>
-  <center><h2>Huecos para Espacio <span id="espId"></span></h2></center>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Huecos del Espacio <span id="espId"></span></a>
+    </div>
+  </nav>
 
-  <div>
-    <!-- formulario para crear huecos -->
-        <label>Inicio: <input type="datetime-local" id="inputInicio"></label><br>
-	    <label>Fin:    <input type="datetime-local" id="inputFin"></label><br>
-	    <button id="btnCrearHueco">Crear Hueco</button>
+  <div class="container mb-4">
+    <div class="card">
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-5">
+            <label class="form-label">Inicio</label>
+            <input type="datetime-local" id="inputInicio" class="form-control">
+          </div>
+          <div class="col-md-5">
+            <label class="form-label">Fin</label>
+            <input type="datetime-local" id="inputFin" class="form-control">
+          </div>
+          <div class="col-md-2">
+            <button id="btnCrearHueco" class="btn btn-primary w-100">Crear Hueco</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <hr>
-
-  <h3>Listado de Huecos</h3>
-  <ul id="listaHuecos"></ul>
-  <button onclick="history.back()">← Volver a Espacios</button>
+  <div class="container">
+    <h3>Listado de Huecos</h3>
+    <ul id="listaHuecos" class="list-group"></ul>
+    <button class="btn btn-link mt-3" onclick="history.back()">← Volver a Espacios</button>
+  </div>
 
 
 	<script>
@@ -61,11 +80,11 @@ $(document).ready(() => {
 
   // 3) Renderiza un hueco en la lista con edición inline
   function loadHueco(h) {
-    const li   = $(`<li id="hueco-${h.id}">`);
-    const info = $('<span>').text(`(${h.id}) ${formatDate(h.startTime)} → ${formatDate(h.endTime)} `);
+	 const li   = $(`<li id="hueco-${h.id}" class="list-group-item d-flex align-items-center">`);
+	 const info = $('<span>').text(`(${h.id}) ${formatDate(h.startTime)} → ${formatDate(h.endTime)}`);
 
     // Botón Editar
-    const btnEdit = $('<button>').text('Editar').click(() => {
+    const btnEdit = $('<button>').addClass('btn btn-sm btn-outline-secondary').text('Editar').click(() => {
       // Inputs de edición
       const inpIni = $('<input type="datetime-local">')
         .val(h.startTime)
@@ -105,7 +124,7 @@ $(document).ready(() => {
     });
 
     // Botón Borrar
-    const btnDel = $('<button>').text('Borrar').click(() => doDelete(h.id, li));
+    const btnDel = $('<button>').addClass('btn btn-sm btn-outline-danger').text('Borrar').click(() => doDelete(h.id, li));
 
     // Montar el elemento
     li.append(info, btnEdit, btnDel);
@@ -150,7 +169,7 @@ $(document).ready(() => {
   });
 });
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

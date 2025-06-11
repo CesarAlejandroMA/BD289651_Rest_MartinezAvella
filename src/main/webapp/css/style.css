@@ -1,0 +1,64 @@
+/* ────────────────────────────────────────────────────────────
+   Colores más oscuros para los botones
+──────────────────────────────────────────────────────────── */
+.btn-huecos {
+  background-color: #004460;   /* azul petróleo oscuro */
+  border-color:  #003748;
+  color:          #fff;
+}
+.btn-huecos:hover {
+  background-color: #003748;
+  border-color:  #002f3a;
+}
+
+.btn-outline-danger {
+  color:          #bb0000;    /* rojo más intenso */
+  border-color:   #bb0000;
+}
+.btn-outline-danger:hover {
+  background-color: #bb0000;
+  color:            #fff;
+}
+
+.btn-outline-secondary {
+  color:          #555;       /* gris oscuro */
+  border-color:   #555;
+}
+.btn-outline-secondary:hover {
+  background-color: #555;
+  color:            #fff;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Espaciado extra entre botones y mejor alineación
+──────────────────────────────────────────────────────────── */
+.list-group-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;          /* más separación entre filas */
+  list-style: none;             /* sin viñetas */
+}
+
+.list-group-item span {
+  flex-grow: 1;                 /* ocupa todo el espacio disponible */
+  margin-right: 1.5rem;         /* espacio entre texto y botones */
+}
+
+.list-group-item button {
+  margin-left: 0.5rem;          /* más espacio entre cada botón */
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Ajustes generales
+──────────────────────────────────────────────────────────── */
+#listaEspacios {
+  padding: 0;                   /* quita padding por defecto */
+}
+
+body {
+  background-color: #eef4f8;    /* fondo muy suave */
+}
+
