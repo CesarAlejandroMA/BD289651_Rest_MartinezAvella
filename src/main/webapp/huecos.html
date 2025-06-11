@@ -21,53 +21,144 @@
   <ul id="listaHuecos"></ul>
   <button onclick="history.back()">← Volver a Espacios</button>
 
-  <script>
+
+	<script>
+  $(document).ready(() => {
     // 1) Leer el parámetro espacioId de la URL
     const params = new URLSearchParams(window.location.search);
     const espacioId = params.get('espacioId');
     $('#espId').text(espacioId);
 
-    // 2) Función para mostrar cada hueco
-	function loadHueco(h) {
-	  // reemplaza la T por espacio
-	  const inicio = h.startTime.replace('T', ' ');
-	  const fin    = h.endTime  .replace('T', ' ');
-	  $('#listaHuecos').append(
-	    $('<li>').text(`(${h.id}) ${inicio} → ${fin}`)
-	  );
-	}
+    // 2) Cuando cambie la fecha de inicio, autoajusta y bloquea fecha fin
+    $('#inputInicio').on('change', function() {
+      const inicioVal = $(this).val();
+      if (!inicioVal) return;
+      $('#inputFin')
+        .val(inicioVal)
+        .attr('min', inicioVal);
+    });
 
-    // 3) Al cargar, pide los huecos al back-end
-    $(document).ready(() => {
-      $.ajax({
-        url: `api/espacios/${espacioId}/huecos`,
-        type: 'GET',
-        dataType: 'json',
-        success: lista => lista.forEach(loadHueco),
-        error: () => alert('No se pudieron cargar los huecos')
+    // Helper para formatear sin la ‘T’
+    function formatDate(iso) {
+      return iso.replace('T', ' ');
+    }
+
+    // 3) Función que carga un hueco en el <ul>
+    function loadHueco(h) {
+      const li = $(`<li id="hueco-${h.id}">`)
+        .text(`(${h.id}) ${formatDate(h.startTime)} → ${formatDate(h.endTime)}`);
+
+      // Botón Editar
+      const btnEdit = $('<button>').text('Editar').click(() => {
+        // Inputs inline
+        const inpIni = $(`<input type="datetime-local">`)
+          .val(h.startTime)
+          .on('change', function() {
+            inpFin.val($(this).val())
+                  .attr('min', $(this).val());
+          });
+        const inpFin = $(`<input type="datetime-local">`)
+          .val(h.endTime)
+          .attr('min', h.startTime);
+
+        const btnSave = $('<button>').text('Guardar').click(() => {
+          const newIni = inpIni.val();
+          const newFin = inpFin.val();
+          // validaciones cliente
+          if (!newIni || !newFin) {
+            alert('Fecha inicio/fin obligatorias');
+            return;
+          }
+          if (new Date(newFin) <= new Date(newIni)) {
+            alert('La fecha fin debe ser posterior al inicio');
+            return;
+          }
+          // AJAX PUT
+          $.ajax({
+            url: `api/espacios/${espacioId}/huecos/${h.id}`,
+            type: 'PUT',
+            contentType: 'application/json',
+            dataType: 'json',
+            data: JSON.stringify({ startTime: newIni, endTime: newFin }),
+            success: updated => {
+              // actualizar vista
+              h = updated; // actualiza el objeto local
+              li.empty().text(
+                `(${h.id}) ${formatDate(h.startTime)} → ${formatDate(h.endTime)}`
+              );
+              li.append(btnEdit, btnDel);
+            },
+            error: xhr => alert(`Error ${xhr.status}: ${xhr.responseText}`)
+          });
+        });
+
+        const btnCancel = $('<button>').text('Cancelar').click(() => {
+          // restaurar vista
+          li.empty().text(`(${h.id}) ${formatDate(h.startTime)} → ${formatDate(h.endTime)}`);
+          li.append(btnEdit, btnDel);
+        });
+
+        // Botón Borrar
+        const btnDel = $('<button>').text('Borrar').click(doDelete);
+
+        // Sustituye contenido por formulario
+        li.empty().append(inpIni, inpFin, btnSave, btnCancel);
       });
-    
- // Crear nuevo hueco
-    $('#btnCrearHueco').click(() => {
-    	  const inicioVal = $('#inputInicio').val();
-    	  const finVal    = $('#inputFin').val();
-      
-      // 2) Validar que no estén vacíos
-      if (!inicioVal || !finVal) {
-        alert('Debes indicar fecha y hora de inicio y fin.');
-        return;
-      }
- 
-      // 3) Convertir a Date para comparar
-      const inicioDate = new Date(inicioVal);
-      const finDate    = new Date(finVal);
-      if (finDate <= inicioDate) {
-        alert('La fecha/hora fin debe ser posterior a la de inicio.');
-        return;
-      }
-      
-      const nuevo = { startTime: inicioVal, endTime: finVal };
 
+      // Botón Borrar
+	function doDelete(huecoId, liElement) {
+	  if (!confirm('¿Seguro que quieres eliminar este hueco?')) return;
+	  $.ajax({
+	    url: `api/espacios/${espacioId}/huecos/${huecoId}`,
+	    type: 'DELETE',
+	    // jQuery llama a success incluso con 204
+	    success: function(data, textStatus, jqXHR) {
+	      // jqXHR.status tendrá el 204
+	      if (jqXHR.status === 204) {
+	        alert('Hueco eliminado correctamente (204).');
+	      } else {
+	        alert(`Hueco eliminado (status ${jqXHR.status}).`);
+	      }
+	      liElement.remove();
+	    },
+	    error: xhr => {
+	      alert(`Error ${xhr.status}: ${xhr.responseText}`);
+	    }
+	  });
+	}
+      
+      
+	const btnDel = $('<button>')
+	  .text('Borrar')
+	  .click(() => doDelete(h.id, li))
+
+      li.append(btnEdit, btnDel);
+      $('#listaHuecos').append(li);
+    }
+
+    // 4) GET inicial de huecos
+    $.ajax({
+      url: `api/espacios/${espacioId}/huecos`,
+      type: 'GET',
+      dataType: 'json',
+      success: lista => lista.forEach(loadHueco),
+      error: () => alert('No se pudieron cargar los huecos')
+    });
+
+    // 5) Crear nuevo hueco
+    $('#btnCrearHueco').click(() => {
+      const inicioVal = $('#inputInicio').val();
+      const finVal    = $('#inputFin').val();
+      // validaciones
+      if (!inicioVal || !finVal) {
+        alert('Debes indicar fecha/hora de inicio y fin.');
+        return;
+      }
+      if (new Date(finVal) <= new Date(inicioVal)) {
+        alert('La fecha/hora fin debe ser posterior al inicio.');
+        return;
+      }
+      const nuevo = { startTime: inicioVal, endTime: finVal };
       $.ajax({
         url: `api/espacios/${espacioId}/huecos`,
         type: 'POST',
@@ -78,13 +169,12 @@
           loadHueco(h);
           $('#inputInicio, #inputFin').val('');
         },
-        error: xhr => {
-          alert(`Error ${xhr.status}: ${xhr.responseText}`);
-        }
+        error: xhr => alert(`Error ${xhr.status}: ${xhr.responseText}`)
       });
     });
+
   });
-    
   </script>
+
 </body>
 </html>

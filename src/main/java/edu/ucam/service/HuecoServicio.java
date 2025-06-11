@@ -84,5 +84,87 @@ public class HuecoServicio {
         } catch (Exception ex) {
             throw new WebApplicationException("Error al crear hueco", 500);
         }
-  }
+    }
+    
+    /** PUT /api/espacios/{espacioId}/huecos/{huecoId} */
+    @PUT @Path("{huecoId}")
+    public Response updateHueco(@PathParam("espacioId") int espacioId,
+                                @PathParam("huecoId") int huecoId,
+                                Huecos dto) {
+        // 1) Fechas no nulas
+        if (dto.getStartTime() == null || dto.getEndTime() == null) {
+            throw new WebApplicationException(
+                Response.status(400)
+                        .entity("Faltan fechas inicio/fin")
+                        .type(MediaType.TEXT_PLAIN)
+                        .build()
+            );
+        }
+        // 2) Orden
+        if (!dto.getEndTime().isAfter(dto.getStartTime())) {
+            throw new WebApplicationException(
+                Response.status(400)
+                        .entity("El fin debe ser posterior al inicio")
+                        .type(MediaType.TEXT_PLAIN)
+                        .build()
+            );
+        }
+        dto.setSpaceId(espacioId);
+        dto.setId(huecoId);
+        // 3) Solapamiento (excluyendo este hueco)
+        if (dao.hasOverlapExcluding(espacioId, dto.getStartTime(), dto.getEndTime(), huecoId)) {
+            throw new WebApplicationException(
+                Response.status(409)
+                        .entity("El hueco se solapa con otro existente")
+                        .type(MediaType.TEXT_PLAIN)
+                        .build()
+            );
+        }
+        // 4) Actualizar
+        boolean ok = dao.update(dto);
+        if (!ok) {
+            throw new WebApplicationException(
+                Response.status(404)
+                        .entity("Hueco no encontrado")
+                        .type(MediaType.TEXT_PLAIN)
+                        .build()
+            );
+        }
+        return Response
+                .status(200)
+                .entity(dto)
+                .build();
+    }
+    
+    
+    /** DELETE /api/espacios/{espacioId}/huecos/{huecoId} */
+    @DELETE
+    @Path("{huecoId}")
+    public Response deleteHueco(@PathParam("espacioId") int espacioId,
+                                @PathParam("huecoId")  int huecoId) {
+        try {
+            boolean ok = dao.delete(espacioId, huecoId);
+            if (!ok) {
+                // 404 si no existía
+                throw new WebApplicationException(
+                    Response.status(404)
+                            .entity("Hueco no encontrado")
+                            .type(MediaType.TEXT_PLAIN)
+                            .build()
+                );
+            }
+            // 204 No Content en borrado exitoso
+            return Response.noContent().build();
+        } catch (WebApplicationException wae) {
+            throw wae;
+        } catch (Exception ex) {
+            throw new WebApplicationException(
+                Response.status(500)
+                        .entity("Error al eliminar hueco")
+                        .type(MediaType.TEXT_PLAIN)
+                        .build()
+            );
+        }
+    }
+    
 }

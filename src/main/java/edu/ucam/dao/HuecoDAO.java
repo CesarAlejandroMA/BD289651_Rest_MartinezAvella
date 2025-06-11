@@ -109,5 +109,60 @@ public class HuecoDAO {
         }
         return false;
     }
-	
+    
+    /**
+     * Verifica solapamiento excluyendo el hueco con id = excludeId.
+     */
+    public boolean hasOverlapExcluding(int espacioId,
+                                       LocalDateTime start,
+                                       LocalDateTime end,
+                                       int excludeId) {
+        String sql = "SELECT COUNT(*) FROM Hueco "
+                   + "WHERE espacio_id = ? "
+                   + "  AND inicio < ? "
+                   + "  AND fin > ? "
+                   + "  AND id <> ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, espacioId);
+            ps.setTimestamp(2, Timestamp.valueOf(end));
+            ps.setTimestamp(3, Timestamp.valueOf(start));
+            ps.setInt(4, excludeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+        } catch (SQLException ex) {
+            throw new RuntimeException("Error comprobando solapamiento excluyendo " + excludeId, ex);
+        }
+    }
+
+    /**
+     * Actualiza un hueco existente.
+     */
+    public boolean update(Huecos h) {
+        String sql = "UPDATE Hueco SET inicio = ?, fin = ? "
+                   + "WHERE id = ? AND espacio_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(h.getStartTime()));
+            ps.setTimestamp(2, Timestamp.valueOf(h.getEndTime()));
+            ps.setInt(3, h.getId());
+            ps.setInt(4, h.getSpaceId());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException ex) {
+            throw new RuntimeException("Error al actualizar hueco " + h.getId(), ex);
+        }
+    }
+    
+    public boolean delete(int espacioId, int huecoId) {
+        String sql = "DELETE FROM Hueco WHERE espacio_id = ? AND id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, espacioId);
+            ps.setInt(2, huecoId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException ex) {
+            throw new RuntimeException("Error al eliminar hueco " + huecoId, ex);
+        }
+    }
 }
