@@ -23,158 +23,134 @@
 
 
 	<script>
-  $(document).ready(() => {
-    // 1) Leer el parámetro espacioId de la URL
-    const params = new URLSearchParams(window.location.search);
-    const espacioId = params.get('espacioId');
-    $('#espId').text(espacioId);
+$(document).ready(() => {
+  // 1) Leer espacioId de la URL
+  const params = new URLSearchParams(window.location.search);
+  const espacioId = params.get('espacioId');
+  $('#espId').text(espacioId);
 
-    // 2) Cuando cambie la fecha de inicio, autoajusta y bloquea fecha fin
-    $('#inputInicio').on('change', function() {
-      const inicioVal = $(this).val();
-      if (!inicioVal) return;
-      $('#inputFin')
-        .val(inicioVal)
-        .attr('min', inicioVal);
+  // 2) Cuando cambie la fecha de inicio, autoajusta y bloquea fecha fin
+  $('#inputInicio').on('change', function() {
+    const inicioVal = $(this).val();
+    if (!inicioVal) return;
+    $('#inputFin')
+      .val(inicioVal)
+      .attr('min', inicioVal);
+  });
+
+  // Helper para formatear sin la ‘T’
+  function formatDate(iso) {
+    return iso.replace('T', ' ');
+  }
+
+  // Función para borrar un hueco
+  function doDelete(huecoId, li) {
+    if (!confirm('¿Eliminar este hueco?')) return;
+    $.ajax({
+      url: `api/espacios/${espacioId}/huecos/${huecoId}`,
+      type: 'DELETE',
+      success: (data, textStatus, xhr) => {
+        alert(xhr.status === 204
+          ? 'Hueco eliminado correctamente.'
+          : `Hueco eliminado (status ${xhr.status}).`);
+        li.remove();
+      },
+      error: xhr => alert(`Error ${xhr.status}: ${xhr.responseText}`)
     });
+  }
 
-    // Helper para formatear sin la ‘T’
-    function formatDate(iso) {
-      return iso.replace('T', ' ');
-    }
+  // 3) Renderiza un hueco en la lista con edición inline
+  function loadHueco(h) {
+    const li   = $(`<li id="hueco-${h.id}">`);
+    const info = $('<span>').text(`(${h.id}) ${formatDate(h.startTime)} → ${formatDate(h.endTime)} `);
 
-    // 3) Función que carga un hueco en el <ul>
-    function loadHueco(h) {
-      const li = $(`<li id="hueco-${h.id}">`)
-        .text(`(${h.id}) ${formatDate(h.startTime)} → ${formatDate(h.endTime)}`);
-
-      // Botón Editar
-      const btnEdit = $('<button>').text('Editar').click(() => {
-        // Inputs inline
-        const inpIni = $(`<input type="datetime-local">`)
-          .val(h.startTime)
-          .on('change', function() {
-            inpFin.val($(this).val())
-                  .attr('min', $(this).val());
-          });
-        const inpFin = $(`<input type="datetime-local">`)
-          .val(h.endTime)
-          .attr('min', h.startTime);
-
-        const btnSave = $('<button>').text('Guardar').click(() => {
-          const newIni = inpIni.val();
-          const newFin = inpFin.val();
-          // validaciones cliente
-          if (!newIni || !newFin) {
-            alert('Fecha inicio/fin obligatorias');
-            return;
-          }
-          if (new Date(newFin) <= new Date(newIni)) {
-            alert('La fecha fin debe ser posterior al inicio');
-            return;
-          }
-          // AJAX PUT
-          $.ajax({
-            url: `api/espacios/${espacioId}/huecos/${h.id}`,
-            type: 'PUT',
-            contentType: 'application/json',
-            dataType: 'json',
-            data: JSON.stringify({ startTime: newIni, endTime: newFin }),
-            success: updated => {
-              // actualizar vista
-              h = updated; // actualiza el objeto local
-              li.empty().text(
-                `(${h.id}) ${formatDate(h.startTime)} → ${formatDate(h.endTime)}`
-              );
-              li.append(btnEdit, btnDel);
-            },
-            error: xhr => alert(`Error ${xhr.status}: ${xhr.responseText}`)
-          });
+    // Botón Editar
+    const btnEdit = $('<button>').text('Editar').click(() => {
+      // Inputs de edición
+      const inpIni = $('<input type="datetime-local">')
+        .val(h.startTime)
+        .on('change', function() {
+          inpFin.val($(this).val()).attr('min', $(this).val());
         });
+      const inpFin = $('<input type="datetime-local">')
+        .val(h.endTime)
+        .attr('min', h.startTime);
 
-        const btnCancel = $('<button>').text('Cancelar').click(() => {
-          // restaurar vista
-          li.empty().text(`(${h.id}) ${formatDate(h.startTime)} → ${formatDate(h.endTime)}`);
-          li.append(btnEdit, btnDel);
+      const btnSave = $('<button>').text('Guardar').click(() => {
+        const newIni = inpIni.val(), newFin = inpFin.val();
+        if (!newIni || !newFin) { alert('Inicio y fin obligatorios'); return; }
+        if (new Date(newFin) <= new Date(newIni)) { alert('El fin debe ser posterior al inicio'); return; }
+        $.ajax({
+          url: `api/espacios/${espacioId}/huecos/${h.id}`,
+          type: 'PUT',
+          contentType: 'application/json',
+          data: JSON.stringify({ startTime: newIni, endTime: newFin }),
+          dataType: 'json',
+          success: updated => {
+            h = updated;
+            info.text(`(${h.id}) ${formatDate(h.startTime)} → ${formatDate(h.endTime)} `);
+            alert('Hueco actualizado correctamente.');
+          },
+          error: xhr => alert(`Error ${xhr.status}: ${xhr.responseText}`)
         });
-
-        // Botón Borrar
-        const btnDel = $('<button>').text('Borrar').click(doDelete);
-
-        // Sustituye contenido por formulario
-        li.empty().append(inpIni, inpFin, btnSave, btnCancel);
       });
 
-      // Botón Borrar
-	function doDelete(huecoId, liElement) {
-	  if (!confirm('¿Seguro que quieres eliminar este hueco?')) return;
-	  $.ajax({
-	    url: `api/espacios/${espacioId}/huecos/${huecoId}`,
-	    type: 'DELETE',
-	    // jQuery llama a success incluso con 204
-	    success: function(data, textStatus, jqXHR) {
-	      // jqXHR.status tendrá el 204
-	      if (jqXHR.status === 204) {
-	        alert('Hueco eliminado correctamente (204).');
-	      } else {
-	        alert(`Hueco eliminado (status ${jqXHR.status}).`);
-	      }
-	      liElement.remove();
-	    },
-	    error: xhr => {
-	      alert(`Error ${xhr.status}: ${xhr.responseText}`);
-	    }
-	  });
-	}
-      
-      
-	const btnDel = $('<button>')
-	  .text('Borrar')
-	  .click(() => doDelete(h.id, li))
+      const btnCancel = $('<button>').text('Cancelar').click(() => {
+        // Restaurar vista original
+        info.text(`(${h.id}) ${formatDate(h.startTime)} → ${formatDate(h.endTime)} `);
+      });
 
-      li.append(btnEdit, btnDel);
-      $('#listaHuecos').append(li);
+      // Sustituye solo el contenido del span
+      info.empty().append(inpIni, inpFin, btnSave, btnCancel);
+    });
+
+    // Botón Borrar
+    const btnDel = $('<button>').text('Borrar').click(() => doDelete(h.id, li));
+
+    // Montar el elemento
+    li.append(info, btnEdit, btnDel);
+    $('#listaHuecos').append(li);
+  }
+
+  // 4) GET inicial de huecos
+  $.ajax({
+    url: `api/espacios/${espacioId}/huecos`,
+    type: 'GET',
+    dataType: 'json',
+    success: lista => lista.forEach(loadHueco),
+    error: () => alert('No se pudieron cargar los huecos')
+  });
+
+  // 5) Crear nuevo hueco
+  $('#btnCrearHueco').click(() => {
+    const inicioVal = $('#inputInicio').val();
+    const finVal    = $('#inputFin').val();
+    if (!inicioVal || !finVal) {
+      alert('Debes indicar fecha/hora de inicio y fin.');
+      return;
     }
-
-    // 4) GET inicial de huecos
+    if (new Date(finVal) <= new Date(inicioVal)) {
+      alert('La fecha/hora fin debe ser posterior al inicio.');
+      return;
+    }
+    const nuevo = { startTime: inicioVal, endTime: finVal };
     $.ajax({
       url: `api/espacios/${espacioId}/huecos`,
-      type: 'GET',
+      type: 'POST',
+      contentType: 'application/json',
       dataType: 'json',
-      success: lista => lista.forEach(loadHueco),
-      error: () => alert('No se pudieron cargar los huecos')
+      data: JSON.stringify(nuevo),
+      success: h => {
+        loadHueco(h);
+        alert('Hueco creado correctamente.');
+        $('#inputInicio, #inputFin').val('');
+      },
+      error: xhr => alert(`Error ${xhr.status}: ${xhr.responseText}`)
     });
-
-    // 5) Crear nuevo hueco
-    $('#btnCrearHueco').click(() => {
-      const inicioVal = $('#inputInicio').val();
-      const finVal    = $('#inputFin').val();
-      // validaciones
-      if (!inicioVal || !finVal) {
-        alert('Debes indicar fecha/hora de inicio y fin.');
-        return;
-      }
-      if (new Date(finVal) <= new Date(inicioVal)) {
-        alert('La fecha/hora fin debe ser posterior al inicio.');
-        return;
-      }
-      const nuevo = { startTime: inicioVal, endTime: finVal };
-      $.ajax({
-        url: `api/espacios/${espacioId}/huecos`,
-        type: 'POST',
-        contentType: 'application/json',
-        dataType: 'json',
-        data: JSON.stringify(nuevo),
-        success: h => {
-          loadHueco(h);
-          $('#inputInicio, #inputFin').val('');
-        },
-        error: xhr => alert(`Error ${xhr.status}: ${xhr.responseText}`)
-      });
-    });
-
   });
-  </script>
+});
+</script>
+
 
 </body>
 </html>

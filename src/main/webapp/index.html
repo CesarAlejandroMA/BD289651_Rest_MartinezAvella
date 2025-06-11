@@ -20,94 +20,171 @@
   <ul id="listaEspacios"></ul>
 
   <script type="text/javascript">
-  
+$(document).ready(function() {
+  // Función para pintar un Espacio en la lista
   function loadEspacio(e) {
-	  // Crea el <li>
-	  const li = $('<li>').attr('id', 'esp-' + e.id)
-	                      .text(`(${e.id}) ${e.name} — ${e.description} `);
 	  
-	  //Botón Ver Huecos
-	  const btnHuecos = $('<button>')
+	  // 1) Creamos el LI y un SPAN para la info
+	  const li   = $('<li>').attr('id', 'esp-' + e.id);
+	  const info = $('<span>').text(`(${e.id}) ${e.name} — ${e.description} `);
+    // Botón “Huecos”
+    const btnHuecos = $('<button>')
       .text('Huecos')
       .click(() => {
-        // redirige a huecos.html pasando el id como query param
         window.location.href = `huecos.html?espacioId=${e.id}`;
       });
 
-	  // Botón Borrar
-	  const btnDel = $('<button>')
-	    .text('Borrar')
-	    .click(() => {
-	      $.ajax({
-	        url: `api/espacios/${e.id}`,
-	        type: 'DELETE',
-	        success: () => li.remove(),
-	        error: () => alert('Error al borrar espacio')
-	      });
-	    });
+    // Botón “Borrar”
+    const btnDel = $('<button>')
+      .text('Borrar')
+      .click(() => {
+        if (!confirm('¿Seguro que deseas eliminar este espacio?')) return;
+        $.ajax({
+          url: `api/espacios/${e.id}`,
+          type: 'DELETE',
+          success: () => li.remove(),
+          error: xhr => alert(`Error ${xhr.status}: ${xhr.responseText}`)
+        });
+      });
 
-	  // Botón Editar
-	  const btnEdit = $('<button>')
-	    .text('Editar')
-	    .click(() => {
-	      const nuevo = { id: e.id,
-	                      name: prompt('Nuevo nombre', e.name) || e.name,
-	                      description: prompt('Nueva descripción', e.description) || e.description };
-	      $.ajax({
-	        url: `api/espacios/${e.id}`,
-	        type: 'PUT',
-	        contentType: 'application/json',
-	        data: JSON.stringify(nuevo),
-	        success: () => {
-	          li.text(`(${nuevo.id}) ${nuevo.name} — ${nuevo.description} `);
-	          li.append(btnDel, btnEdit);
-	        },
-	        error: () => alert('Error al editar')
-	      });
-	    });
+    // Botón “Editar”
+    const btnEdit = $('<button>')
+      .text('Editar')
+      .click(() => {
+        const nuevoNombre = prompt('Nuevo nombre', e.name);
+        const nuevaDesc   = prompt('Nueva descripción', e.description);
+        if (nuevoNombre == null || nuevaDesc == null) return;
 
-	  li.append(btnHuecos, btnDel, btnEdit);
-	  $('#listaEspacios').append(li);
-	}
-  
-  $(document).ready(function() {
-	  // 1) Traer todos al cargar la página
-	  $.ajax({
-	    url: 'api/espacios',
-	    type: 'GET',
-	    dataType: 'json',
-	    success: function(lista) {
-	      lista.forEach(loadEspacio);
-	    },
-	    error: function() {
-	      alert('No se pudieron cargar los espacios');
-	    }
-	  });
+        const nameTrim   = nuevoNombre.trim();
+        const descTrim   = nuevaDesc.trim();
 
-	  // 2) Crear uno nuevo
-	  $('#btnCrear').click(function() {
-	    const nuevo = {
-	      name: $('#inputNombre').val(),
-	      description: $('#inputDescripcion').val()
-	    };
-	    $.ajax({
-	      url: 'api/espacios',
-	      type: 'POST',
-	      contentType: 'application/json',
-	      dataType: 'json',
-	      data: JSON.stringify(nuevo),
-	      success: function(creado) {
-	        loadEspacio(creado);
-	        $('#inputNombre, #inputDescripcion').val('');  // limpia inputs
-	      },
-	      error: function() {
-	        alert('Error al crear espacio');
-	      }
-	    });
-	  });
-	});
+        // Validaciones cliente
+        if (!nameTrim) {
+          alert('El nombre no puede quedar vacío.');
+          return;
+        }
+        if (!descTrim) {
+            alert('La descripción no puede estar vacía.');
+            return;
+          }
+        if (nameTrim.length > 50) {
+          alert('El nombre no puede exceder 50 caracteres.');
+          return;
+        }
+        if (descTrim.length > 200) {
+          alert('La descripción no puede exceder 200 caracteres.');
+          return;
+        }
+        
+        // 4) Nombre único (comparamos con otros <li>, excluyendo este e.id)
+        let duplicado = false;
+        $('#listaEspacios li').each(function() {
+          const li = $(this);
+          const idLi = parseInt(li.attr('id').replace('esp-', ''), 10);
+          const texto = li.text();
+          if (idLi !== e.id && texto.includes(` ${nameTrim} —`)) {
+            duplicado = true;
+            return false; // rompe el each
+          }
+        });
+        
+        if (duplicado) {
+          alert('Ya existe otro espacio con ese nombre.');
+          return;
+        }
 
-  
-  </script>
+        const actualizado = { id: e.id, name: nameTrim, description: descTrim };
+        $.ajax({
+          url: `api/espacios/${e.id}`,
+          type: 'PUT',
+          contentType: 'application/json',
+          data: JSON.stringify(actualizado),
+          success: updated => {
+              // ¡solo actualizo el span!
+              info.text(`(${updated.id}) ${updated.name} — ${updated.description} `);
+              // y actualizo 'e' si lo necesito
+              e.name = updated.name;
+              e.description = updated.description;
+            },
+          error: xhr => alert(`Error ${xhr.status}: ${xhr.responseText}`)
+        });
+      });
+
+    li.append(info, btnHuecos, btnDel, btnEdit);
+    $('#listaEspacios').append(li);
+  }
+
+  // 1) GET inicial de Espacios
+  $.ajax({
+    url: 'api/espacios',
+    type: 'GET',
+    dataType: 'json',
+    success: lista => lista.forEach(loadEspacio),
+    error: () => alert('No se pudieron cargar los espacios')
+  });
+
+  // 2) Crear nuevo Espacio con validaciones
+  $('#btnCrear').click(function() {
+    // Trim
+    const rawName = $('#inputNombre').val().trim();
+    const rawDesc = $('#inputDescripcion').val().trim();
+
+    // Validaciones
+    if (!rawName) {
+      alert('El nombre no puede estar vacío.');
+      return;
+    }
+    if (rawDesc.length === 0) {
+      alert('La descripción no puede estar vacía.');
+      return;
+    }
+    if (rawName.length > 50) {
+      alert('El nombre no puede exceder 50 caracteres.');
+      return;
+    }
+    if (rawDesc.length > 200) {
+      alert('La descripción no puede exceder 200 caracteres.');
+      return;
+    }
+    // Único por nombre en la lista actual
+    let duplicado = false;
+    $('#listaEspacios li').each(function() {
+      const texto = $(this).text();
+      if (texto.includes(` ${rawName} —`)) {
+        duplicado = true;
+        return false;
+      }
+    });
+    if (duplicado) {
+      alert('Ya existe un espacio con ese nombre.');
+      return;
+    }
+
+    // Deshabilitar botón para evitar envíos múltiples
+    $('#btnCrear').prop('disabled', true);
+
+    // Enviar petición
+    $.ajax({
+      url: 'api/espacios',
+      type: 'POST',
+      contentType: 'application/json',
+      dataType: 'json',
+      data: JSON.stringify({ name: rawName, description: rawDesc }),
+      success: function(creado) {
+    	alert('✔️ Espacio creado con éxito (id ' + creado.id + ')');
+        loadEspacio(creado);
+        $('#inputNombre, #inputDescripcion').val('');
+      },
+      error: function(xhr) {
+        alert(`Error ${xhr.status}: ${xhr.responseText}`);
+      },
+      complete: function() {
+        $('#btnCrear').prop('disabled', false);
+      }
+    });
+  });
+});
+</script>
+
 </body>
 </html>
